@@ -29,7 +29,12 @@ export function CardDrawer({
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-[rgba(12,24,32,0.35)] backdrop-blur-[2px]">
-      <button type="button" className="flex-1 cursor-default" aria-label="Close" onClick={onClose} />
+      <button
+        type="button"
+        className="flex-1 cursor-default"
+        aria-label="Dismiss overlay"
+        onClick={onClose}
+      />
       <aside className="flex h-full w-full max-w-md flex-col border-l border-[var(--line)] bg-[var(--surface)] shadow-2xl">
         <header className="flex items-start justify-between gap-3 border-b border-[var(--line)] px-5 py-4">
           <div className="min-w-0 flex-1">

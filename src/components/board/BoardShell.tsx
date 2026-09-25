@@ -69,12 +69,16 @@ export function BoardShell() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <nav className="flex rounded-lg border border-[var(--line)] bg-[var(--panel)] p-1">
+            <nav
+              className="flex rounded-lg border border-[var(--line)] bg-[var(--panel)] p-1"
+              aria-label="Space views"
+            >
               {VIEWS.map((v) => (
                 <button
                   key={v.id}
                   type="button"
                   onClick={() => setView(v.id)}
+                  aria-pressed={view === v.id}
                   className={`rounded-md px-3 py-1.5 text-sm transition ${
                     view === v.id
                       ? "bg-[var(--accent)] text-white"

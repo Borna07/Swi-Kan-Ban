@@ -73,7 +73,7 @@ export const DEMO_CARDS: Card[] = [
   },
   {
     id: "card_calendar",
-    title: "Calendar view",
+    title: "Month calendar layout",
     description: "Month grid of cards by due date; click day to inspect.",
     status: "todo",
     startDate: daysFromNow(0),
@@ -87,7 +87,7 @@ export const DEMO_CARDS: Card[] = [
   },
   {
     id: "card_gantt",
-    title: "Gantt schedule",
+    title: "Gantt schedule bars",
     description: "Bars from start→due; resize timeline for planning.",
     status: "todo",
     startDate: daysFromNow(1),
