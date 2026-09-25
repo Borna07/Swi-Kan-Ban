@@ -4,9 +4,10 @@ Team work board inspired by [KanBo](https://kanboapp.com/de/) — **Kanban**, **
 
 ## What you get
 
-- **Kanban** — drag cards across To do / Doing / Done / Blocked
+- **Kanban** — drag cards across To do / Doing / Done / Blocked; expand nested subcards
 - **Calendar** — cards by due date (month grid)
-- **Gantt** — start→due bars on a shared timeline
+- **Gantt** — start→due bars in a parent/child tree (indent + expand/collapse)
+- **Subcards** — unlimited nesting (subcard of subcard…); create from the card drawer
 - **SharePoint** — cards stored in a SharePoint list via Microsoft Graph; documents stay in a document library (links on cards)
 - **Local demo mode** — works out of the box without Azure (browser `localStorage`)
 
@@ -39,6 +40,7 @@ Open [http://localhost:3000](http://localhost:3000).
    | Labels         | Single line    | comma-separated              |
    | ChecklistJson  | Multiple lines | JSON                         |
    | DocumentLinks  | Multiple lines | one URL per line             |
+   | ParentId       | Single line    | parent card id (empty = root)|
 
 3. **Document library folder** e.g. `Shared Documents/SwiKanban` for files. Paste file URLs onto cards.
 
@@ -59,7 +61,7 @@ Site ID / list ID: Graph Explorer → `GET https://graph.microsoft.com/v1.0/site
 
 ## Scope (intentionally slim)
 
-Included: Kanban, Calendar, Gantt, card details, checklist, SharePoint list + doc links.
+Included: Kanban, Calendar, Gantt, nested subcards, card details, checklist, SharePoint list + doc links.
 
 Not included (KanBo has these): Mind Map, MySpace mirrors, Teams channel sync, on-prem/hybrid install, budget, full portfolio hierarchy.
 

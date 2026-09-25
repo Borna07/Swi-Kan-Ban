@@ -1,4 +1,5 @@
 import { emptyCard } from "../demoData";
+import { collectDescendantIds } from "../cardTree";
 import type { Card, CardStore } from "../types";
 import { getGraphToken } from "../sharepoint/auth";
 import { getSharePointConfig } from "../sharepoint/config";
@@ -74,12 +75,16 @@ export function createSharePointStore(): CardStore {
     async deleteCard(id) {
       const config = getSharePointConfig();
       if (!config) throw new Error("SharePoint is not configured");
-      const existing = await this.getCard(id);
-      if (!existing?.sharePointItemId) return;
-      await graphFetch(
-        `/sites/${config.siteId}/lists/${config.listId}/items/${existing.sharePointItemId}`,
-        { method: "DELETE" },
-      );
+      const all = await this.listCards();
+      const doomed = [id, ...collectDescendantIds(all, id)];
+      for (const cardId of doomed) {
+        const existing = all.find((c) => c.id === cardId);
+        if (!existing?.sharePointItemId) continue;
+        await graphFetch(
+          `/sites/${config.siteId}/lists/${config.listId}/items/${existing.sharePointItemId}`,
+          { method: "DELETE" },
+        );
+      }
     },
   };
 }

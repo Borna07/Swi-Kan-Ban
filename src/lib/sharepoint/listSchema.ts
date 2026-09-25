@@ -15,6 +15,7 @@
  * | Labels          | Single line     | comma-separated                |
  * | ChecklistJson   | Multiple lines  | JSON array                     |
  * | DocumentLinks   | Multiple lines  | newline-separated URLs         |
+ * | ParentId        | Single line     | parent card id (empty = root)  |
  */
 
 import type { Card, CardStatus, ChecklistItem } from "../types";
@@ -29,6 +30,7 @@ export const SHAREPOINT_LIST_FIELDS = [
   "Labels",
   "ChecklistJson",
   "DocumentLinks",
+  "ParentId",
 ] as const;
 
 type GraphListItem = {
@@ -84,6 +86,8 @@ export function graphItemToCard(item: GraphListItem): Card {
     .map((l) => l.trim())
     .filter(Boolean);
 
+  const parentRaw = asString(f.ParentId).trim();
+
   return {
     id: `sp_${item.id}`,
     sharePointItemId: item.id,
@@ -95,6 +99,7 @@ export function graphItemToCard(item: GraphListItem): Card {
     assignee: asString(f.Assignee) || null,
     labels,
     checklist: parseChecklist(f.ChecklistJson),
+    parentId: parentRaw || null,
     documentLinks: parseLinks(f.DocumentLinks),
     createdAt: item.createdDateTime ?? new Date().toISOString(),
     updatedAt: item.lastModifiedDateTime ?? new Date().toISOString(),
@@ -112,5 +117,6 @@ export function cardToGraphFields(card: Partial<Card> & { title?: string }) {
     Labels: (card.labels ?? []).join(", "),
     ChecklistJson: JSON.stringify(card.checklist ?? []),
     DocumentLinks: (card.documentLinks ?? []).join("\n"),
+    ParentId: card.parentId ?? "",
   };
 }

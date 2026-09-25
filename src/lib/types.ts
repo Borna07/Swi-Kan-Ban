@@ -18,6 +18,8 @@ export interface Card {
   assignee: string | null;
   labels: string[];
   checklist: ChecklistItem[];
+  /** Parent card id for nested subcards (null = root). Unlimited depth. */
+  parentId: string | null;
   sharePointItemId?: string;
   documentLinks: string[];
   updatedAt: string;

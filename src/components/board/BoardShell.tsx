@@ -170,7 +170,11 @@ export function BoardShell() {
         )}
       </main>
 
-      <CardDrawer card={openCard} onClose={() => setOpenCard(null)} />
+      <CardDrawer
+        card={openCard}
+        onClose={() => setOpenCard(null)}
+        onOpenCard={setOpenCard}
+      />
     </div>
   );
 }
