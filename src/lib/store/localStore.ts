@@ -1,14 +1,16 @@
+import { normalizeChecklistItem } from "../checklist";
 import { DEMO_CARDS, emptyCard } from "../demoData";
 import { collectDescendantIds } from "../cardTree";
 import type { Card, CardStore } from "../types";
 
 /** Bump when demo shape changes so localStorage picks up new seed data. */
-const STORAGE_KEY = "swikanban.cards.v2";
+const STORAGE_KEY = "swikanban.cards.v3";
 
 function normalize(card: Card): Card {
   return {
     ...card,
     parentId: card.parentId ?? null,
+    checklist: (card.checklist ?? []).map(normalizeChecklistItem),
   };
 }
 

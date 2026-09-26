@@ -8,6 +8,8 @@ Team work board inspired by [KanBo](https://kanboapp.com/de/) — **Kanban**, **
 - **Calendar** — cards by due date (month grid)
 - **Gantt** — start→due bars in a parent/child tree (indent + expand/collapse)
 - **Subcards** — unlimited nesting (subcard of subcard…); create from the card drawer
+- **To-dos** — assign people per to-do; convert note bullets → to-dos; promote a to-do → subcard
+- **Gantt editing** — drag bars to move dates; drag edges to change length
 - **SharePoint** — cards stored in a SharePoint list via Microsoft Graph; documents stay in a document library (links on cards)
 - **Local demo mode** — works out of the box without Azure (browser `localStorage`)
 

@@ -59,6 +59,7 @@ function parseChecklist(raw: unknown): ChecklistItem[] {
       id: asString(item.id) || `chk_${i}`,
       text: asString(item.text),
       done: Boolean(item.done),
+      assignee: asString(item.assignee) || null,
     }));
   } catch {
     return [];

@@ -6,6 +6,8 @@ export interface ChecklistItem {
   id: string;
   text: string;
   done: boolean;
+  /** Person responsible for this to-do item */
+  assignee: string | null;
 }
 
 export interface Card {

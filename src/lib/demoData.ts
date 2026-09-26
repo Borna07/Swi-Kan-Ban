@@ -13,8 +13,13 @@ function daysFromNow(n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-function check(...items: [string, boolean][]): ChecklistItem[] {
-  return items.map(([text, done]) => ({ id: id("chk"), text, done }));
+function check(...items: [string, boolean, string?][]): ChecklistItem[] {
+  return items.map(([text, done, assignee]) => ({
+    id: id("chk"),
+    text,
+    done,
+    assignee: assignee ?? null,
+  }));
 }
 
 function card(
@@ -50,19 +55,19 @@ export const DEMO_CARDS: Card[] = [
     dueDate: daysFromNow(-7),
     assignee: "Borna",
     labels: ["planning"],
-    checklist: check(["Write goals", true], ["Confirm views", true]),
+    checklist: check(["Write goals", true, "Borna"], ["Confirm views", true, "Alex"]),
   }),
   card({
     id: "card_sharepoint",
     title: "SharePoint list + library setup",
     description:
-      "Create the Cards list and Documents library. Wire Graph auth for the team tenant.",
+      "Create the Cards list and Documents library. Wire Graph auth for the team tenant.\n\n- Register Azure AD SPA app\n- Create SwiCards list columns\n- Create document library folder\n- Grant Sites.ReadWrite.All",
     status: "doing",
     startDate: daysFromNow(-3),
     dueDate: daysFromNow(2),
     assignee: "Borna",
     labels: ["infra", "sharepoint"],
-    checklist: check(["App registration", true]),
+    checklist: check(["App registration", true, "Borna"]),
   }),
   card({
     id: "card_sp_list",

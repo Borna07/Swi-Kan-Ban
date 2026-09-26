@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getAncestors, getChildren, childProgress } from "@/lib/cardTree";
+import {
+  extractBulletsFromNote,
+  newChecklistItem,
+  normalizeChecklistItem,
+} from "@/lib/checklist";
 import { useBoard } from "@/lib/store/BoardContext";
-import type { Card, CardStatus } from "@/lib/types";
+import type { Card, CardStatus, ChecklistItem } from "@/lib/types";
 import { STATUS_LABELS, STATUS_ORDER } from "@/lib/types";
 
 export function CardDrawer({
@@ -20,9 +25,27 @@ export function CardDrawer({
   const [subTitle, setSubTitle] = useState("");
 
   useEffect(() => {
-    setDraft(card);
+    if (!card) {
+      setDraft(null);
+      return;
+    }
+    setDraft({
+      ...card,
+      checklist: (card.checklist ?? []).map(normalizeChecklistItem),
+    });
     setSubTitle("");
   }, [card]);
+
+  const people = useMemo(() => {
+    const names = new Set<string>();
+    for (const c of cards) {
+      if (c.assignee) names.add(c.assignee);
+      for (const item of c.checklist ?? []) {
+        if (item.assignee) names.add(item.assignee);
+      }
+    }
+    return [...names].sort();
+  }, [cards]);
 
   if (!card || !draft) return null;
 
@@ -30,11 +53,17 @@ export function CardDrawer({
   const ancestors = getAncestors(cards, live.id);
   const subcards = getChildren(cards, live.id);
   const progress = childProgress(cards, live.id);
+  const bulletCount = extractBulletsFromNote(draft.description).items.length;
 
   async function save(patch: Partial<Card>) {
     const next = { ...draft!, ...patch };
     setDraft(next);
     await updateCard(card!.id, patch);
+  }
+
+  async function saveChecklist(checklist: ChecklistItem[]) {
+    setDraft({ ...draft!, checklist });
+    await updateCard(card!.id, { checklist });
   }
 
   async function addSubcard(e: React.FormEvent) {
@@ -43,6 +72,30 @@ export function CardDrawer({
     if (!title) return;
     const created = await createCard(title, live.id);
     setSubTitle("");
+    onOpenCard(created);
+  }
+
+  async function convertBulletsToTodos() {
+    const current = draft;
+    if (!current) return;
+    const { items, remaining } = extractBulletsFromNote(current.description);
+    if (items.length === 0) return;
+    const checklist = [
+      ...current.checklist,
+      ...items.map((text) => newChecklistItem(text, current.assignee)),
+    ];
+    await save({ description: remaining, checklist });
+  }
+
+  async function promoteTodoToSubcard(item: ChecklistItem) {
+    const current = draft;
+    if (!current) return;
+    const created = await createCard(item.text.trim() || "Untitled", live.id, {
+      assignee: item.assignee,
+      status: item.done ? "done" : "todo",
+    });
+    const checklist = current.checklist.filter((c) => c.id !== item.id);
+    await saveChecklist(checklist);
     onOpenCard(created);
   }
 
@@ -133,6 +186,7 @@ export function CardDrawer({
           <label className="block">
             <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Assignee</span>
             <input
+              list="people-suggestions"
               className="mt-1 w-full rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-sm"
               value={draft.assignee ?? ""}
               onChange={(e) => setDraft({ ...draft, assignee: e.target.value || null })}
@@ -141,15 +195,27 @@ export function CardDrawer({
             />
           </label>
 
-          <label className="block">
-            <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Description</span>
+          <div>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Note</span>
+              <button
+                type="button"
+                disabled={bulletCount === 0}
+                onClick={() => void convertBulletsToTodos()}
+                className="text-xs text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40"
+                title="Lines starting with - * • or 1. become to-dos"
+              >
+                Bullets → to-dos{bulletCount > 0 ? ` (${bulletCount})` : ""}
+              </button>
+            </div>
             <textarea
-              className="mt-1 min-h-[80px] w-full rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-sm"
+              className="min-h-[100px] w-full rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-sm"
               value={draft.description}
               onChange={(e) => setDraft({ ...draft, description: e.target.value })}
               onBlur={() => save({ description: draft.description })}
+              placeholder={"Notes…\n- bullet becomes a to-do\n- another bullet"}
             />
-          </label>
+          </div>
 
           <label className="block">
             <span className="text-xs uppercase tracking-wide text-[var(--muted)]">
@@ -173,6 +239,96 @@ export function CardDrawer({
 
           <div>
             <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">To-dos</span>
+              <button
+                type="button"
+                className="text-xs text-[var(--accent)]"
+                onClick={() => {
+                  void saveChecklist([
+                    ...draft.checklist,
+                    newChecklistItem("New to-do", draft.assignee),
+                  ]);
+                }}
+              >
+                + Add
+              </button>
+            </div>
+            {draft.checklist.length === 0 ? (
+              <p className="text-sm text-[var(--muted)]">
+                Assign people to to-dos, or convert note bullets. Turn a to-do into a subcard when
+                it needs its own dates and nesting.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {draft.checklist.map((item, idx) => (
+                  <li
+                    key={item.id}
+                    className="rounded-lg border border-[var(--line)] bg-[var(--panel)] px-2.5 py-2"
+                  >
+                    <div className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={item.done}
+                        onChange={() => {
+                          const checklist = draft.checklist.map((c, i) =>
+                            i === idx ? { ...c, done: !c.done } : c,
+                          );
+                          void saveChecklist(checklist);
+                        }}
+                      />
+                      <input
+                        className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                        value={item.text}
+                        onChange={(e) => {
+                          const checklist = draft.checklist.map((c, i) =>
+                            i === idx ? { ...c, text: e.target.value } : c,
+                          );
+                          setDraft({ ...draft, checklist });
+                        }}
+                        onBlur={() => saveChecklist(draft.checklist)}
+                      />
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 pl-6">
+                      <input
+                        list="people-suggestions"
+                        className="min-w-[120px] flex-1 rounded border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-xs"
+                        placeholder="Assign to…"
+                        value={item.assignee ?? ""}
+                        onChange={(e) => {
+                          const checklist = draft.checklist.map((c, i) =>
+                            i === idx ? { ...c, assignee: e.target.value || null } : c,
+                          );
+                          setDraft({ ...draft, checklist });
+                        }}
+                        onBlur={() => saveChecklist(draft.checklist)}
+                      />
+                      <button
+                        type="button"
+                        className="rounded border border-[var(--line)] px-2 py-1 text-xs text-[var(--accent)] hover:bg-[var(--wash)]"
+                        onClick={() => void promoteTodoToSubcard(item)}
+                        title="Create a nested subcard from this to-do"
+                      >
+                        → Subcard
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded px-2 py-1 text-xs text-red-700 hover:underline"
+                        onClick={() => {
+                          void saveChecklist(draft.checklist.filter((c) => c.id !== item.id));
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div>
+            <div className="mb-2 flex items-center justify-between">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">
                 Subcards
               </span>
@@ -180,7 +336,7 @@ export function CardDrawer({
             </div>
             {subcards.length === 0 ? (
               <p className="mb-2 text-sm text-[var(--muted)]">
-                No subcards yet. Add one below — then open it to nest further.
+                No subcards yet. Promote a to-do, or add one below.
               </p>
             ) : (
               <ul className="mb-3 space-y-1.5">
@@ -196,6 +352,7 @@ export function CardDrawer({
                         <span className="truncate font-medium text-[var(--ink)]">{child.title}</span>
                         <span className="ml-2 shrink-0 text-[11px] text-[var(--muted)]">
                           {STATUS_LABELS[child.status]}
+                          {child.assignee ? ` · ${child.assignee}` : ""}
                           {grand > 0 ? ` · ${grand} nested` : ""}
                         </span>
                       </button>
@@ -218,58 +375,6 @@ export function CardDrawer({
                 Add
               </button>
             </form>
-          </div>
-
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Checklist</span>
-              <button
-                type="button"
-                className="text-xs text-[var(--accent)]"
-                onClick={() => {
-                  const checklist = [
-                    ...draft.checklist,
-                    {
-                      id: `chk_${Math.random().toString(36).slice(2, 8)}`,
-                      text: "New step",
-                      done: false,
-                    },
-                  ];
-                  setDraft({ ...draft, checklist });
-                  void save({ checklist });
-                }}
-              >
-                + Add
-              </button>
-            </div>
-            <ul className="space-y-2">
-              {draft.checklist.map((item, idx) => (
-                <li key={item.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={item.done}
-                    onChange={() => {
-                      const checklist = draft.checklist.map((c, i) =>
-                        i === idx ? { ...c, done: !c.done } : c,
-                      );
-                      setDraft({ ...draft, checklist });
-                      void save({ checklist });
-                    }}
-                  />
-                  <input
-                    className="flex-1 border-b border-transparent bg-transparent text-sm outline-none focus:border-[var(--line)]"
-                    value={item.text}
-                    onChange={(e) => {
-                      const checklist = draft.checklist.map((c, i) =>
-                        i === idx ? { ...c, text: e.target.value } : c,
-                      );
-                      setDraft({ ...draft, checklist });
-                    }}
-                    onBlur={() => save({ checklist: draft.checklist })}
-                  />
-                </li>
-              ))}
-            </ul>
           </div>
 
           <div>
@@ -328,6 +433,12 @@ export function CardDrawer({
           </button>
         </footer>
       </aside>
+
+      <datalist id="people-suggestions">
+        {people.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
     </div>
   );
 }

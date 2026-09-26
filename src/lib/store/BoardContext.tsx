@@ -27,7 +27,11 @@ interface BoardContextValue {
   signedIn: boolean;
   accountName: string | null;
   refresh: () => Promise<void>;
-  createCard: (title: string, parentId?: string | null) => Promise<Card>;
+  createCard: (
+    title: string,
+    parentId?: string | null,
+    extras?: Partial<Card>,
+  ) => Promise<Card>;
   updateCard: (id: string, patch: Partial<Card>) => Promise<void>;
   deleteCard: (id: string) => Promise<void>;
   moveCard: (id: string, status: Card["status"]) => Promise<void>;
@@ -96,14 +100,15 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const createCard = useCallback(
-    async (title: string, parentId: string | null = null) => {
+    async (title: string, parentId: string | null = null, extras: Partial<Card> = {}) => {
       const parent = parentId ? (await store.getCard(parentId)) : null;
       const card = await store.createCard({
-        title,
         status: parent?.status ?? "todo",
-        parentId,
         startDate: parent?.startDate ?? undefined,
         dueDate: parent?.dueDate ?? undefined,
+        ...extras,
+        title,
+        parentId,
       });
       setCards((prev) => [...prev, card]);
       return card;
