@@ -41,8 +41,8 @@ function card(
 
 export const DEMO_SPACE = {
   id: "space_team",
-  name: "Team delivery",
-  description: "Shared workstream — SharePoint is the document store",
+  name: "Pr-DUE-11-Modellbasierte Kalkulation implementieren",
+  description: "KanBo-style board — SharePoint is the document store",
 };
 
 export const DEMO_CARDS: Card[] = [
