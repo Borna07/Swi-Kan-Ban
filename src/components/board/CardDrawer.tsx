@@ -107,7 +107,7 @@ export function CardDrawer({
       <button
         type="button"
         className="absolute inset-0 cursor-default"
-        aria-label="Schließen"
+        aria-label="Overlay schließen"
         onClick={onClose}
       />
       <div className="relative z-10 flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-[var(--radius)] bg-[var(--surface)] shadow-[var(--shadow-lift)]">
@@ -144,7 +144,7 @@ export function CardDrawer({
             type="button"
             onClick={onClose}
             className="rounded-[var(--radius)] px-2 py-1 text-lg leading-none text-[var(--muted)] hover:bg-[var(--panel)]"
-            aria-label="Schließen"
+            aria-label="Karte schließen"
           >
             ×
           </button>
