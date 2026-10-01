@@ -28,9 +28,8 @@ function checklistProgress(card: Card) {
   return { done, total };
 }
 
-function CardChip({
+function CardFace({
   card,
-  onOpen,
   dragging,
   depth = 0,
   expanded,
@@ -39,7 +38,6 @@ function CardChip({
   childDone,
 }: {
   card: Card;
-  onOpen: (c: Card) => void;
   dragging?: boolean;
   depth?: number;
   expanded?: boolean;
@@ -54,7 +52,9 @@ function CardChip({
   return (
     <div
       className={`group relative overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-card)] transition ${
-        dragging ? "shadow-[var(--shadow-lift)] ring-2 ring-[var(--accent)]" : "hover:shadow-[var(--shadow-lift)]"
+        dragging
+          ? "shadow-[var(--shadow-lift)] ring-2 ring-[var(--accent)]"
+          : "hover:shadow-[var(--shadow-lift)]"
       } ${depth > 0 ? "bg-[var(--wash)]" : ""}`}
       style={{ marginLeft: depth * 12 }}
     >
@@ -68,6 +68,7 @@ function CardChip({
           <button
             type="button"
             aria-label={expanded ? "Unterkarten einklappen" : "Unterkarten ausklappen"}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               onToggle?.();
@@ -79,11 +80,7 @@ function CardChip({
         ) : (
           <span className="w-2 shrink-0" />
         )}
-        <button
-          type="button"
-          onClick={() => onOpen(card)}
-          className="min-w-0 flex-1 cursor-grab px-2.5 py-2.5 text-left active:cursor-grabbing"
-        >
+        <div className="min-w-0 flex-1 px-2.5 py-2.5 text-left">
           <div className="flex items-start justify-between gap-2">
             <span className="text-[13px] font-semibold leading-snug text-[var(--ink)]">
               {card.title}
@@ -115,7 +112,6 @@ function CardChip({
             ) : null}
             {range ? (
               <span className="inline-flex items-center gap-1 rounded bg-[var(--panel)] px-1.5 py-0.5">
-                <span aria-hidden>📅</span>
                 {range}
               </span>
             ) : null}
@@ -128,7 +124,7 @@ function CardChip({
               </span>
             ) : null}
           </div>
-        </button>
+        </div>
       </div>
     </div>
   );
@@ -154,15 +150,16 @@ function NestedBlock({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <CardChip
-        card={card}
-        onOpen={onOpen}
-        depth={depth}
-        expanded={expanded}
-        onToggle={() => toggle(card.id)}
-        childCount={progress.total}
-        childDone={progress.done}
-      />
+      <button type="button" className="block w-full text-left" onClick={() => onOpen(card)}>
+        <CardFace
+          card={card}
+          depth={depth}
+          expanded={expanded}
+          onToggle={() => toggle(card.id)}
+          childCount={progress.total}
+          childDone={progress.done}
+        />
+      </button>
       {expanded
         ? kids.map((child) => (
             <NestedBlock
@@ -190,6 +187,10 @@ function SortableRoot({
   expandedIds: Set<string>;
   toggle: (id: string) => void;
 }) {
+  const { cards } = useBoard();
+  const kids = getChildren(cards, card.id);
+  const progress = childProgress(cards, card.id);
+  const expanded = expandedIds.has(card.id);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
     data: { type: "card", status: card.status },
@@ -203,17 +204,40 @@ function SortableRoot({
         transition,
         opacity: isDragging ? 0.35 : 1,
       }}
-      className="relative kb-fade-up"
+      className="flex flex-col gap-1.5 kb-fade-up"
     >
-      <div {...attributes} {...listeners}>
-        <NestedBlock
+      <div
+        className="cursor-grab touch-none active:cursor-grabbing"
+        {...attributes}
+        {...listeners}
+        onClick={() => onOpen(card)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onOpen(card);
+          }
+        }}
+      >
+        <CardFace
           card={card}
-          depth={0}
-          onOpen={onOpen}
-          expandedIds={expandedIds}
-          toggle={toggle}
+          expanded={expanded}
+          onToggle={() => toggle(card.id)}
+          childCount={progress.total}
+          childDone={progress.done}
         />
       </div>
+      {expanded
+        ? kids.map((child) => (
+            <NestedBlock
+              key={child.id}
+              card={child}
+              depth={1}
+              onOpen={onOpen}
+              expandedIds={expandedIds}
+              toggle={toggle}
+            />
+          ))
+        : null}
     </div>
   );
 }
@@ -266,7 +290,7 @@ function Column({
       >
         <span className="min-w-0 flex-1 truncate">{STATUS_LABELS[status]}</span>
         <span className="inline-flex items-center gap-1 rounded bg-black/15 px-1.5 py-0.5 text-[11px] tabular-nums">
-          ▦ {cards.length}
+          {cards.length}
         </span>
         <button
           type="button"
@@ -343,15 +367,18 @@ function Column({
   );
 }
 
-function resolveDropStatus(
-  overId: string,
-  cards: Card[],
-): CardStatus | undefined {
+function resolveDropStatus(overId: string, cards: Card[]): CardStatus | undefined {
   if (STATUS_ORDER.includes(overId as CardStatus)) return overId as CardStatus;
   return cards.find((c) => c.id === overId)?.status;
 }
 
-export function KanbanView({ onOpenCard }: { onOpenCard: (c: Card) => void }) {
+export function KanbanView({
+  onOpenCard,
+  searchQuery = "",
+}: {
+  onOpenCard: (c: Card) => void;
+  searchQuery?: string;
+}) {
   const { cards, moveCard } = useBoard();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumn, setOverColumn] = useState<string | null>(null);
@@ -377,6 +404,8 @@ export function KanbanView({ onOpenCard }: { onOpenCard: (c: Card) => void }) {
     });
   }, [cards]);
 
+  const q = searchQuery.trim().toLowerCase();
+
   const rootsByStatus = useMemo(() => {
     const map: Record<CardStatus, Card[]> = {
       blocked: [],
@@ -384,9 +413,12 @@ export function KanbanView({ onOpenCard }: { onOpenCard: (c: Card) => void }) {
       doing: [],
       done: [],
     };
-    for (const card of getRoots(cards)) map[card.status].push(card);
+    for (const card of getRoots(cards)) {
+      if (q && !card.title.toLowerCase().includes(q)) continue;
+      map[card.status].push(card);
+    }
     return map;
-  }, [cards]);
+  }, [cards, q]);
 
   const activeCard = cards.find((c) => c.id === activeId) ?? null;
 
@@ -455,8 +487,8 @@ export function KanbanView({ onOpenCard }: { onOpenCard: (c: Card) => void }) {
       </div>
       <DragOverlay dropAnimation={{ duration: 180, easing: "ease" }}>
         {activeCard ? (
-          <div className="w-[260px] rotate-[1.5deg]">
-            <CardChip card={activeCard} onOpen={() => undefined} dragging />
+          <div className="w-[260px] rotate-[1.5deg] cursor-grabbing">
+            <CardFace card={activeCard} dragging />
           </div>
         ) : null}
       </DragOverlay>

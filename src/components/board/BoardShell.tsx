@@ -176,6 +176,7 @@ export function BoardShell() {
                   type="button"
                   onClick={() => setView(v.id)}
                   aria-pressed={view === v.id}
+                  data-view={v.id}
                   className={`border-b-2 px-3 py-2 text-sm transition ${
                     view === v.id
                       ? "border-[var(--accent)] font-semibold text-[var(--accent)]"
