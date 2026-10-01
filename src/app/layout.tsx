@@ -1,12 +1,6 @@
 import type { Metadata } from "next";
-import { Fraunces, Source_Sans_3 } from "next/font/google";
+import { Source_Sans_3 } from "next/font/google";
 import "./globals.css";
-
-const display = Fraunces({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-});
 
 const body = Source_Sans_3({
   variable: "--font-body",
@@ -26,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${display.variable} ${body.variable} antialiased`}>{children}</body>
+    <html lang="de">
+      <body className={`${body.variable} antialiased`}>{children}</body>
     </html>
   );
 }

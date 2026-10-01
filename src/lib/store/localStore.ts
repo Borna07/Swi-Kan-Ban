@@ -4,7 +4,7 @@ import { collectDescendantIds } from "../cardTree";
 import type { Card, CardStore } from "../types";
 
 /** Bump when demo shape changes so localStorage picks up new seed data. */
-const STORAGE_KEY = "swikanban.cards.v3";
+const STORAGE_KEY = "swikanban.cards.v4";
 
 function normalize(card: Card): Card {
   return {

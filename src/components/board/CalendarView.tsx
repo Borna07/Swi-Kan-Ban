@@ -40,38 +40,38 @@ export function CalendarView({ onOpenCard }: { onOpenCard: (c: Card) => void }) 
   const today = new Date();
 
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-[var(--panel)]/90 p-4">
+    <div className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="font-display text-xl text-[var(--ink)]">
+        <h3 className="text-lg font-semibold text-[var(--ink)]">
           {format(cursor, "MMMM yyyy")}
         </h3>
         <div className="flex gap-2">
           <button
             type="button"
-            className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm text-[var(--ink)] hover:bg-[var(--wash)]"
+            className="rounded-[var(--radius)] border border-[var(--line)] px-3 py-1.5 text-sm text-[var(--ink)] hover:bg-[var(--panel)]"
             onClick={() => setCursor((d) => startOfMonth(addDays(d, -15)))}
           >
-            Prev
+            Zurück
           </button>
           <button
             type="button"
-            className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm text-[var(--ink)] hover:bg-[var(--wash)]"
+            className="rounded-[var(--radius)] border border-[var(--line)] px-3 py-1.5 text-sm text-[var(--ink)] hover:bg-[var(--panel)]"
             onClick={() => setCursor(startOfMonth(new Date()))}
           >
-            Today
+            Heute
           </button>
           <button
             type="button"
-            className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm text-[var(--ink)] hover:bg-[var(--wash)]"
+            className="rounded-[var(--radius)] border border-[var(--line)] px-3 py-1.5 text-sm text-[var(--ink)] hover:bg-[var(--panel)]"
             onClick={() => setCursor((d) => startOfMonth(addDays(endOfMonth(d), 1)))}
           >
-            Next
+            Weiter
           </button>
         </div>
       </div>
 
-      <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
-        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+      <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[11px] uppercase tracking-[0.08em] text-[var(--muted)]">
+        {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
           <div key={d} className="py-1">
             {d}
           </div>

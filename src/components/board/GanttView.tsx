@@ -52,11 +52,12 @@ function cardRange(card: Card, fallbackStart: Date, fallbackEnd: Date) {
 }
 
 function barClass(depth: number, status: Card["status"]) {
-  if (status === "done") return "bg-[var(--muted)]";
-  if (status === "blocked") return "bg-amber-700";
+  if (status === "done") return "bg-[#107c10]";
+  if (status === "blocked") return "bg-[#3b3b3b]";
+  if (status === "todo") return "bg-[#d13438]";
   if (depth === 0) return "bg-[var(--accent)]";
-  if (depth === 1) return "bg-[#1f8a6d]";
-  return "bg-[#3aa88a]";
+  if (depth === 1) return "bg-[#ffb900]";
+  return "bg-[#605e5c]";
 }
 
 function applyDrag(drag: DragState, clientX: number): { start: string; due: string } {
@@ -217,7 +218,7 @@ export function GanttView({ onOpenCard }: { onOpenCard: (c: Card) => void }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--panel)]/90">
+    <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-card)]">
       <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-2">
         <p className="text-xs text-[var(--muted)]">
           Drag a bar to move · drag edges to change length · hierarchy indented by depth
@@ -254,7 +255,7 @@ export function GanttView({ onOpenCard }: { onOpenCard: (c: Card) => void }) {
 
       <div className="flex border-b border-[var(--line)]">
         <div
-          className="shrink-0 border-r border-[var(--line)] px-4 py-3 font-display text-sm text-[var(--muted)]"
+          className="shrink-0 border-r border-[var(--line)] px-4 py-3 text-sm font-semibold text-[var(--muted)]"
           style={{ width: LABEL_WIDTH }}
         >
           Card
@@ -312,7 +313,7 @@ export function GanttView({ onOpenCard }: { onOpenCard: (c: Card) => void }) {
                   >
                     <div
                       className={`truncate text-sm text-[var(--ink)] ${
-                        depth === 0 ? "font-display" : ""
+                        depth === 0 ? "font-semibold" : ""
                       }`}
                     >
                       {depth > 0 ? (

@@ -45,11 +45,23 @@ export interface CardStore {
   backend: DataBackend;
 }
 
-export const STATUS_ORDER: CardStatus[] = ["todo", "doing", "done", "blocked"];
+/** Lane order matches KanBo board in the reference video. */
+export const STATUS_ORDER: CardStatus[] = ["blocked", "todo", "doing", "done"];
 
 export const STATUS_LABELS: Record<CardStatus, string> = {
-  todo: "To do",
-  doing: "Doing",
-  done: "Done",
-  blocked: "Blocked",
+  blocked: "Entwicklung",
+  todo: "To Do",
+  doing: "In Bearbeitung",
+  done: "erledigt",
+};
+
+/** Colored lane headers (KanBo-style). */
+export const STATUS_COLORS: Record<
+  CardStatus,
+  { header: string; text: string; soft: string }
+> = {
+  blocked: { header: "#3b3b3b", text: "#ffffff", soft: "#ececec" },
+  todo: { header: "#d13438", text: "#ffffff", soft: "#fde7e9" },
+  doing: { header: "#ffb900", text: "#1b1b1b", soft: "#fff4ce" },
+  done: { header: "#107c10", text: "#ffffff", soft: "#dff6dd" },
 };

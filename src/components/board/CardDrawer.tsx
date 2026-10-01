@@ -9,7 +9,7 @@ import {
 } from "@/lib/checklist";
 import { useBoard } from "@/lib/store/BoardContext";
 import type { Card, CardStatus, ChecklistItem } from "@/lib/types";
-import { STATUS_LABELS, STATUS_ORDER } from "@/lib/types";
+import { STATUS_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/types";
 
 export function CardDrawer({
   card,
@@ -23,6 +23,7 @@ export function CardDrawer({
   const { cards, updateCard, deleteCard, createCard } = useBoard();
   const [draft, setDraft] = useState<Card | null>(card);
   const [subTitle, setSubTitle] = useState("");
+  const [tab, setTab] = useState<"content" | "subcards">("content");
 
   useEffect(() => {
     if (!card) {
@@ -34,6 +35,7 @@ export function CardDrawer({
       checklist: (card.checklist ?? []).map(normalizeChecklistItem),
     });
     setSubTitle("");
+    setTab("content");
   }, [card]);
 
   const people = useMemo(() => {
@@ -54,6 +56,7 @@ export function CardDrawer({
   const subcards = getChildren(cards, live.id);
   const progress = childProgress(cards, live.id);
   const bulletCount = extractBulletsFromNote(draft.description).items.length;
+  const statusColor = STATUS_COLORS[live.status];
 
   async function save(patch: Partial<Card>) {
     const next = { ...draft!, ...patch };
@@ -100,22 +103,22 @@ export function CardDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-[rgba(12,24,32,0.35)] backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-40 flex items-stretch justify-center bg-[rgba(0,0,0,0.45)] p-3 sm:p-6">
       <button
         type="button"
-        className="flex-1 cursor-default"
-        aria-label="Dismiss overlay"
+        className="absolute inset-0 cursor-default"
+        aria-label="Schließen"
         onClick={onClose}
       />
-      <aside className="flex h-full w-full max-w-md flex-col border-l border-[var(--line)] bg-[var(--surface)] shadow-2xl">
-        <header className="flex items-start justify-between gap-3 border-b border-[var(--line)] px-5 py-4">
+      <div className="relative z-10 flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-[var(--radius)] bg-[var(--surface)] shadow-[var(--shadow-lift)]">
+        <header className="flex items-start justify-between gap-3 border-b border-[var(--line)] px-5 py-3">
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--muted)]">
-              {live.parentId ? "Subcard" : "Card"}
-              {progress.total > 0 ? ` · ${progress.done}/${progress.total} children done` : ""}
+            <p className="truncate text-[11px] text-[var(--muted)]">
+              {live.parentId ? "Unterkarte" : "Kartendetails"}
+              {progress.total > 0 ? ` · ${progress.done}/${progress.total} Unterkarten erledigt` : ""}
             </p>
             {ancestors.length > 0 ? (
-              <nav className="mt-1 flex flex-wrap items-center gap-1 text-xs text-[var(--muted)]">
+              <nav className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-[var(--muted)]">
                 {ancestors.map((a, i) => (
                   <span key={a.id} className="inline-flex items-center gap-1">
                     {i > 0 ? <span>/</span> : null}
@@ -131,7 +134,7 @@ export function CardDrawer({
               </nav>
             ) : null}
             <input
-              className="mt-1 w-full bg-transparent font-display text-2xl text-[var(--ink)] outline-none"
+              className="mt-1 w-full bg-transparent text-xl font-semibold text-[var(--ink)] outline-none"
               value={draft.title}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
               onBlur={() => save({ title: draft.title })}
@@ -140,287 +143,373 @@ export function CardDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-[var(--line)] px-2 py-1 text-sm text-[var(--muted)] hover:bg-[var(--wash)]"
+            className="rounded-[var(--radius)] px-2 py-1 text-lg leading-none text-[var(--muted)] hover:bg-[var(--panel)]"
+            aria-label="Schließen"
           >
-            Close
+            ×
           </button>
         </header>
 
-        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
-          <label className="block">
-            <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Status</span>
-            <select
-              className="mt-1 w-full rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-sm"
-              value={draft.status}
-              onChange={(e) => save({ status: e.target.value as CardStatus })}
-            >
-              {STATUS_ORDER.map((s) => (
-                <option key={s} value={s}>
-                  {STATUS_LABELS[s]}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Start</span>
-              <input
-                type="date"
-                className="mt-1 w-full rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-sm"
-                value={draft.startDate ?? ""}
-                onChange={(e) => save({ startDate: e.target.value || null })}
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Due</span>
-              <input
-                type="date"
-                className="mt-1 w-full rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-sm"
-                value={draft.dueDate ?? ""}
-                onChange={(e) => save({ dueDate: e.target.value || null })}
-              />
-            </label>
-          </div>
-
-          <label className="block">
-            <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Assignee</span>
-            <input
-              list="people-suggestions"
-              className="mt-1 w-full rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-sm"
-              value={draft.assignee ?? ""}
-              onChange={(e) => setDraft({ ...draft, assignee: e.target.value || null })}
-              onBlur={() => save({ assignee: draft.assignee })}
-              placeholder="Name"
-            />
-          </label>
-
-          <div>
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Note</span>
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[220px_1fr_220px]">
+          {/* Left metadata */}
+          <aside className="space-y-4 overflow-y-auto border-b border-[var(--line)] p-4 lg:border-b-0 lg:border-r">
+            <div className="flex gap-3 border-b border-[var(--line)] text-sm">
               <button
                 type="button"
-                disabled={bulletCount === 0}
-                onClick={() => void convertBulletsToTodos()}
-                className="text-xs text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40"
-                title="Lines starting with - * • or 1. become to-dos"
+                onClick={() => setTab("content")}
+                className={`border-b-2 pb-2 ${
+                  tab === "content"
+                    ? "border-[var(--accent)] font-semibold text-[var(--accent)]"
+                    : "border-transparent text-[var(--muted)]"
+                }`}
               >
-                Bullets → to-dos{bulletCount > 0 ? ` (${bulletCount})` : ""}
+                Inhalt
               </button>
-            </div>
-            <textarea
-              className="min-h-[100px] w-full rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-sm"
-              value={draft.description}
-              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-              onBlur={() => save({ description: draft.description })}
-              placeholder={"Notes…\n- bullet becomes a to-do\n- another bullet"}
-            />
-          </div>
-
-          <label className="block">
-            <span className="text-xs uppercase tracking-wide text-[var(--muted)]">
-              Labels (comma-separated)
-            </span>
-            <input
-              className="mt-1 w-full rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-sm"
-              value={draft.labels.join(", ")}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  labels: e.target.value
-                    .split(",")
-                    .map((x) => x.trim())
-                    .filter(Boolean),
-                })
-              }
-              onBlur={() => save({ labels: draft.labels })}
-            />
-          </label>
-
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">To-dos</span>
               <button
                 type="button"
-                className="text-xs text-[var(--accent)]"
-                onClick={() => {
-                  void saveChecklist([
-                    ...draft.checklist,
-                    newChecklistItem("New to-do", draft.assignee),
-                  ]);
-                }}
+                onClick={() => setTab("subcards")}
+                className={`border-b-2 pb-2 ${
+                  tab === "subcards"
+                    ? "border-[var(--accent)] font-semibold text-[var(--accent)]"
+                    : "border-transparent text-[var(--muted)]"
+                }`}
               >
-                + Add
+                Unterkarten
               </button>
             </div>
-            {draft.checklist.length === 0 ? (
-              <p className="text-sm text-[var(--muted)]">
-                Assign people to to-dos, or convert note bullets. Turn a to-do into a subcard when
-                it needs its own dates and nesting.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {draft.checklist.map((item, idx) => (
-                  <li
-                    key={item.id}
-                    className="rounded-lg border border-[var(--line)] bg-[var(--panel)] px-2.5 py-2"
-                  >
-                    <div className="flex items-start gap-2">
-                      <input
-                        type="checkbox"
-                        className="mt-1"
-                        checked={item.done}
-                        onChange={() => {
-                          const checklist = draft.checklist.map((c, i) =>
-                            i === idx ? { ...c, done: !c.done } : c,
-                          );
-                          void saveChecklist(checklist);
-                        }}
-                      />
-                      <input
-                        className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-                        value={item.text}
-                        onChange={(e) => {
-                          const checklist = draft.checklist.map((c, i) =>
-                            i === idx ? { ...c, text: e.target.value } : c,
-                          );
-                          setDraft({ ...draft, checklist });
-                        }}
-                        onBlur={() => saveChecklist(draft.checklist)}
-                      />
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 pl-6">
-                      <input
-                        list="people-suggestions"
-                        className="min-w-[120px] flex-1 rounded border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-xs"
-                        placeholder="Assign to…"
-                        value={item.assignee ?? ""}
-                        onChange={(e) => {
-                          const checklist = draft.checklist.map((c, i) =>
-                            i === idx ? { ...c, assignee: e.target.value || null } : c,
-                          );
-                          setDraft({ ...draft, checklist });
-                        }}
-                        onBlur={() => saveChecklist(draft.checklist)}
-                      />
-                      <button
-                        type="button"
-                        className="rounded border border-[var(--line)] px-2 py-1 text-xs text-[var(--accent)] hover:bg-[var(--wash)]"
-                        onClick={() => void promoteTodoToSubcard(item)}
-                        title="Create a nested subcard from this to-do"
-                      >
-                        → Subcard
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded px-2 py-1 text-xs text-red-700 hover:underline"
-                        onClick={() => {
-                          void saveChecklist(draft.checklist.filter((c) => c.id !== item.id));
-                        }}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
 
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">
-                Subcards
-              </span>
-              <span className="text-[11px] text-[var(--muted)]">unlimited nesting</span>
-            </div>
-            {subcards.length === 0 ? (
-              <p className="mb-2 text-sm text-[var(--muted)]">
-                No subcards yet. Promote a to-do, or add one below.
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                Status
               </p>
-            ) : (
-              <ul className="mb-3 space-y-1.5">
-                {subcards.map((child) => {
-                  const grand = getChildren(cards, child.id).length;
+              <p className="mt-1 text-sm font-semibold" style={{ color: statusColor.header }}>
+                {STATUS_LABELS[live.status]}
+              </p>
+              <div className="mt-2 flex items-center gap-1">
+                {STATUS_ORDER.map((s) => {
+                  const active = live.status === s;
+                  const c = STATUS_COLORS[s];
                   return (
-                    <li key={child.id}>
-                      <button
-                        type="button"
-                        onClick={() => onOpenCard(child)}
-                        className="flex w-full items-center justify-between rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-left text-sm hover:border-[var(--accent)]"
-                      >
-                        <span className="truncate font-medium text-[var(--ink)]">{child.title}</span>
-                        <span className="ml-2 shrink-0 text-[11px] text-[var(--muted)]">
-                          {STATUS_LABELS[child.status]}
-                          {child.assignee ? ` · ${child.assignee}` : ""}
-                          {grand > 0 ? ` · ${grand} nested` : ""}
-                        </span>
-                      </button>
-                    </li>
+                    <button
+                      key={s}
+                      type="button"
+                      title={STATUS_LABELS[s]}
+                      onClick={() => void save({ status: s })}
+                      className={`h-8 w-8 rounded-full border-2 transition ${
+                        active ? "scale-110" : "opacity-50 hover:opacity-100"
+                      }`}
+                      style={{
+                        background: c.header,
+                        borderColor: active ? "var(--ink)" : "transparent",
+                      }}
+                      aria-label={STATUS_LABELS[s]}
+                    />
                   );
                 })}
-              </ul>
-            )}
-            <form onSubmit={(e) => void addSubcard(e)} className="flex gap-2">
-              <input
-                value={subTitle}
-                onChange={(e) => setSubTitle(e.target.value)}
-                placeholder="New subcard title…"
-                className="min-w-0 flex-1 rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-sm outline-none ring-[var(--accent)] focus:ring-2"
-              />
-              <button
-                type="submit"
-                className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm text-white hover:brightness-110"
+              </div>
+              <select
+                className="mt-2 w-full rounded-[var(--radius)] border border-[var(--line)] bg-[var(--wash)] px-2 py-1.5 text-sm"
+                value={draft.status}
+                onChange={(e) => save({ status: e.target.value as CardStatus })}
               >
-                Add
-              </button>
-            </form>
-          </div>
-
-          <div>
-            <span className="text-xs uppercase tracking-wide text-[var(--muted)]">
-              SharePoint documents
-            </span>
-            {draft.documentLinks.length === 0 ? (
-              <p className="mt-2 text-sm text-[var(--muted)]">
-                Paste SharePoint file URLs below. Files live in your document library; cards only
-                store links.
-              </p>
-            ) : (
-              <ul className="mt-2 space-y-1">
-                {draft.documentLinks.map((url) => (
-                  <li key={url}>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="break-all text-sm text-[var(--accent)] underline"
-                    >
-                      {url}
-                    </a>
-                  </li>
+                {STATUS_ORDER.map((s) => (
+                  <option key={s} value={s}>
+                    {STATUS_LABELS[s]}
+                  </option>
                 ))}
-              </ul>
+              </select>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                Termine
+              </p>
+              <div className="mt-2 grid gap-2">
+                <label className="block text-xs text-[var(--muted)]">
+                  Startdatum
+                  <input
+                    type="date"
+                    className="mt-1 w-full rounded-[var(--radius)] border border-[var(--line)] bg-[var(--wash)] px-2 py-1.5 text-sm text-[var(--ink)]"
+                    value={draft.startDate ?? ""}
+                    onChange={(e) => save({ startDate: e.target.value || null })}
+                  />
+                </label>
+                <label className="block text-xs text-[var(--muted)]">
+                  Fälligkeitsdatum
+                  <input
+                    type="date"
+                    className="mt-1 w-full rounded-[var(--radius)] border border-[var(--line)] bg-[var(--wash)] px-2 py-1.5 text-sm text-[var(--ink)]"
+                    value={draft.dueDate ?? ""}
+                    onChange={(e) => save({ dueDate: e.target.value || null })}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <label className="block">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                Kartenmitglieder
+              </span>
+              <input
+                list="people-suggestions"
+                className="mt-1 w-full rounded-[var(--radius)] border border-[var(--line)] bg-[var(--wash)] px-2 py-1.5 text-sm"
+                value={draft.assignee ?? ""}
+                onChange={(e) => setDraft({ ...draft, assignee: e.target.value || null })}
+                onBlur={() => save({ assignee: draft.assignee })}
+                placeholder="Name"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                Kategorien
+              </span>
+              <input
+                className="mt-1 w-full rounded-[var(--radius)] border border-[var(--line)] bg-[var(--wash)] px-2 py-1.5 text-sm"
+                value={draft.labels.join(", ")}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    labels: e.target.value
+                      .split(",")
+                      .map((x) => x.trim())
+                      .filter(Boolean),
+                  })
+                }
+                onBlur={() => save({ labels: draft.labels })}
+              />
+            </label>
+          </aside>
+
+          {/* Center content */}
+          <section className="min-h-0 overflow-y-auto p-4">
+            {tab === "content" ? (
+              <div className="space-y-5">
+                <div>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                      Notiz
+                    </span>
+                    <button
+                      type="button"
+                      disabled={bulletCount === 0}
+                      onClick={() => void convertBulletsToTodos()}
+                      className="text-xs text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Aufzählung → Aufgaben{bulletCount > 0 ? ` (${bulletCount})` : ""}
+                    </button>
+                  </div>
+                  <textarea
+                    className="min-h-[120px] w-full rounded-[var(--radius)] border border-[var(--line)] bg-[var(--wash)] px-3 py-2 text-sm"
+                    value={draft.description}
+                    onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                    onBlur={() => save({ description: draft.description })}
+                    placeholder={"Notiz…\n- Aufzählung wird zur Aufgabe"}
+                  />
+                </div>
+
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                      Aufgabenliste
+                    </span>
+                    <button
+                      type="button"
+                      className="text-xs text-[var(--accent)]"
+                      onClick={() => {
+                        void saveChecklist([
+                          ...draft.checklist,
+                          newChecklistItem("Neue Aufgabe", draft.assignee),
+                        ]);
+                      }}
+                    >
+                      + Hinzufügen
+                    </button>
+                  </div>
+                  {draft.checklist.length === 0 ? (
+                    <p className="rounded-[var(--radius)] border border-dashed border-[var(--line-strong)] px-3 py-6 text-center text-sm text-[var(--muted)]">
+                      Noch keine Aufgaben. Füge Elemente hinzu oder wandle Notiz-Aufzählungen um.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {draft.checklist.map((item, idx) => (
+                        <li
+                          key={item.id}
+                          className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--wash)] px-2.5 py-2"
+                        >
+                          <div className="flex items-start gap-2">
+                            <input
+                              type="checkbox"
+                              className="mt-1"
+                              checked={item.done}
+                              onChange={() => {
+                                const checklist = draft.checklist.map((c, i) =>
+                                  i === idx ? { ...c, done: !c.done } : c,
+                                );
+                                void saveChecklist(checklist);
+                              }}
+                            />
+                            <input
+                              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                              value={item.text}
+                              onChange={(e) => {
+                                const checklist = draft.checklist.map((c, i) =>
+                                  i === idx ? { ...c, text: e.target.value } : c,
+                                );
+                                setDraft({ ...draft, checklist });
+                              }}
+                              onBlur={() => saveChecklist(draft.checklist)}
+                            />
+                          </div>
+                          <div className="mt-2 flex flex-wrap items-center gap-2 pl-6">
+                            <input
+                              list="people-suggestions"
+                              className="min-w-[120px] flex-1 rounded border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-xs"
+                              placeholder="Zuweisen…"
+                              value={item.assignee ?? ""}
+                              onChange={(e) => {
+                                const checklist = draft.checklist.map((c, i) =>
+                                  i === idx ? { ...c, assignee: e.target.value || null } : c,
+                                );
+                                setDraft({ ...draft, checklist });
+                              }}
+                              onBlur={() => saveChecklist(draft.checklist)}
+                            />
+                            <button
+                              type="button"
+                              className="rounded border border-[var(--line)] px-2 py-1 text-xs text-[var(--accent)] hover:bg-[var(--panel)]"
+                              onClick={() => void promoteTodoToSubcard(item)}
+                            >
+                              → Unterkarte
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded px-2 py-1 text-xs text-red-700 hover:underline"
+                              onClick={() => {
+                                void saveChecklist(draft.checklist.filter((c) => c.id !== item.id));
+                              }}
+                            >
+                              Entfernen
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                    SharePoint-Dokumente
+                  </span>
+                  {draft.documentLinks.length === 0 ? (
+                    <p className="mt-2 text-sm text-[var(--muted)]">
+                      SharePoint-URLs einfügen. Dateien bleiben in der Bibliothek; Karten speichern
+                      nur Links.
+                    </p>
+                  ) : (
+                    <ul className="mt-2 space-y-1">
+                      {draft.documentLinks.map((url) => (
+                        <li key={url}>
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="break-all text-sm text-[var(--accent)] underline"
+                          >
+                            {url}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <textarea
+                    className="mt-2 min-h-[72px] w-full rounded-[var(--radius)] border border-[var(--line)] bg-[var(--wash)] px-3 py-2 text-sm"
+                    placeholder="Eine SharePoint-URL pro Zeile"
+                    value={draft.documentLinks.join("\n")}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        documentLinks: e.target.value
+                          .split("\n")
+                          .map((x) => x.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                    onBlur={() => save({ documentLinks: draft.documentLinks })}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                    Unterkarten
+                  </span>
+                  <span className="text-[11px] text-[var(--muted)]">beliebige Verschachtelung</span>
+                </div>
+                {subcards.length === 0 ? (
+                  <p className="mb-2 text-sm text-[var(--muted)]">Noch keine Unterkarten.</p>
+                ) : (
+                  <ul className="mb-3 space-y-1.5">
+                    {subcards.map((child) => {
+                      const grand = getChildren(cards, child.id).length;
+                      return (
+                        <li key={child.id}>
+                          <button
+                            type="button"
+                            onClick={() => onOpenCard(child)}
+                            className="flex w-full items-center justify-between rounded-[var(--radius)] border border-[var(--line)] bg-[var(--wash)] px-3 py-2 text-left text-sm hover:border-[var(--accent)]"
+                          >
+                            <span className="truncate font-medium text-[var(--ink)]">
+                              {child.title}
+                            </span>
+                            <span className="ml-2 shrink-0 text-[11px] text-[var(--muted)]">
+                              {STATUS_LABELS[child.status]}
+                              {child.assignee ? ` · ${child.assignee}` : ""}
+                              {grand > 0 ? ` · ${grand} nested` : ""}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                <form onSubmit={(e) => void addSubcard(e)} className="flex gap-2">
+                  <input
+                    value={subTitle}
+                    onChange={(e) => setSubTitle(e.target.value)}
+                    placeholder="Neue Unterkarte…"
+                    className="min-w-0 flex-1 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--wash)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-[var(--radius)] bg-[var(--accent)] px-3 py-2 text-sm text-white hover:bg-[var(--accent-hover)]"
+                  >
+                    Hinzufügen
+                  </button>
+                </form>
+              </div>
             )}
-            <textarea
-              className="mt-2 min-h-[72px] w-full rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-sm"
-              placeholder="One SharePoint URL per line"
-              value={draft.documentLinks.join("\n")}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  documentLinks: e.target.value
-                    .split("\n")
-                    .map((x) => x.trim())
-                    .filter(Boolean),
-                })
-              }
-              onBlur={() => save({ documentLinks: draft.documentLinks })}
-            />
-          </div>
+          </section>
+
+          {/* Right comments column */}
+          <aside className="hidden overflow-y-auto border-l border-[var(--line)] p-4 lg:block">
+            <div className="flex gap-3 border-b border-[var(--line)] text-sm">
+              <span className="border-b-2 border-[var(--accent)] pb-2 font-semibold text-[var(--accent)]">
+                Kommentare
+              </span>
+              <span className="border-b-2 border-transparent pb-2 text-[var(--muted)]">
+                Aktivität
+              </span>
+            </div>
+            <p className="mt-6 text-center text-sm text-[var(--muted)]">
+              Es gibt noch keine Kommentare.
+            </p>
+          </aside>
         </div>
 
-        <footer className="border-t border-[var(--line)] px-5 py-4">
+        <footer className="border-t border-[var(--line)] px-5 py-3">
           <button
             type="button"
             className="text-sm text-red-700 hover:underline"
@@ -429,10 +518,10 @@ export function CardDrawer({
               onClose();
             }}
           >
-            Delete card{subcards.length > 0 ? " + all nested subcards" : ""}
+            Karte löschen{subcards.length > 0 ? " + alle Unterkarten" : ""}
           </button>
         </footer>
-      </aside>
+      </div>
 
       <datalist id="people-suggestions">
         {people.map((name) => (
