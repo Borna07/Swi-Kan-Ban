@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #14262a;
+  --muted: #5c7178;
+  --line: #c9d5d1;
+  --surface: #f7fbf9;
+  --panel: #eef5f1;
+  --wash: #e2ece7;
+  --accent: #0f6e56;
+  --accent-soft: #c8e6d8;
+  --background: var(--panel);
+  --foreground: var(--ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), "Segoe UI", sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.02em;
+}
+
+* {
+  box-sizing: border-box;
+}
